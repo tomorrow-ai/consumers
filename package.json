@@ -1,0 +1,15 @@
+{
+  "name": "consumers",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node-cron": "^3.0.11"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "node-cron": "^3.0.3"
+  }
+}
