@@ -1,6 +1,13 @@
-import cron from "node-cron";
+import { startYoutubeLiveTranscriptions } from "./orchestrator";
 
-cron.schedule("* * * * *", () => {
-  console.log("Hello via Bun!");
-});
+import { config } from "dotenv";
+config();
 
+startYoutubeLiveTranscriptions();
+
+setInterval(
+  () => {
+    // keep alive
+  },
+  1000 * 60 * 60,
+);

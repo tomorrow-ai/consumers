@@ -1,15 +1,18 @@
 {
   "name": "consumers",
   "module": "index.ts",
-  "type": "module",
   "devDependencies": {
-    "@types/bun": "latest",
-    "@types/node-cron": "^3.0.11"
+    "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
+  "type": "module",
   "dependencies": {
-    "node-cron": "^3.0.3"
+    "@ai-sdk/openai": "^1.1.10",
+    "ai": "^4.1.36",
+    "assemblyai": "^4.9.0",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.2"
   }
 }
