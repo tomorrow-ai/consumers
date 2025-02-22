@@ -1,5 +1,6 @@
 import { transcribeStream } from "./yt/transcriber";
 import { getTopLiveStreams, filterOnlyNews, registerStream, resetAllTracking } from "./yt/lookup";
+import { fetchAndUpdateTrends } from "./google/trends";
 
 export const startYoutubeLiveTranscriptions = async () => {
   await resetAllTracking();
@@ -19,5 +20,18 @@ export const startYoutubeLiveTranscriptions = async () => {
       }
     }
   }
+}
+
+export const startGoogleTrendsTracking = async () => {
+  try {
+    await fetchAndUpdateTrends();
+  } catch (error) {
+    console.error('Failed to fetch and update Google Trends:', error);
+  }
+}
+
+export const scheduleGoogleTrendsTracking = () => {
+  startGoogleTrendsTracking();
+  setInterval(startGoogleTrendsTracking, 15 * 60 * 1000);
 }
 

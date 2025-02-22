@@ -2,7 +2,10 @@
   "name": "consumers",
   "module": "index.ts",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/node": "^22.13.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -12,7 +15,10 @@
     "@ai-sdk/openai": "^1.1.10",
     "ai": "^4.1.36",
     "assemblyai": "^4.9.0",
+    "axios": "^1.7.9",
     "dotenv": "^16.4.7",
+    "path": "^0.12.7",
+    "serpapi": "^2.1.0",
     "zod": "^3.24.2"
   }
 }
