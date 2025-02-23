@@ -6,14 +6,15 @@ config();
 
 async function test() {
   try {
-    console.log('Testing Google Trends consumer...');
-    console.log('API_BASE_URL:', process.env.API_BASE_URL);
-    console.log('SERPAPI_KEY:', process.env.SERPAPI_KEY ? '✓ Present' : '✗ Missing');
+    console.log('[Test] Starting Google Trends consumer test');
+    console.log('[Test] Environment check:');
+    console.log('  API_BASE_URL:', process.env.API_BASE_URL);
+    console.log('  SERPAPI_KEY:', process.env.SERPAPI_KEY ? '✓' : '✗');
 
     await fetchAndUpdateTrends();
-    console.log('Test completed successfully');
+    console.log('[Test] Completed successfully');
   } catch (error) {
-    console.error('Test failed:', error);
+    console.error('[Test] Failed:', error);
   }
 }
 

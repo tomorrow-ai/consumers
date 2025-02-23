@@ -1,15 +1,9 @@
-import { AssemblyAI } from "assemblyai";
-import { writeFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { spawn } from "child_process";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, promises as fs } from "node:fs";
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000'
-
-const assembly = new AssemblyAI({
-  apiKey: process.env.ASSEMBLYAI_API_KEY!,
-});
 
 const activeProcesses: Record<string, any> = {};
 
@@ -35,9 +29,7 @@ async function sendCaptionToServer(streamUrl: string, text: string) {
 }
 
 export function transcribeStream(streamUrl: string) {
-  console.log(
-    `Starting transcription process for stream url: ${streamUrl}`,
-  );
+  console.log(`[YT Transcriber] Started monitoring stream: ${streamUrl}`);
 
   const tempDir = join(process.cwd(), "temp");
   if (!existsSync(tempDir)) {
@@ -56,24 +48,15 @@ export function transcribeStream(streamUrl: string) {
 
   const intervalId = setInterval(async () => {
     if (audioChunks.length === 0 || isProcessing) {
-      console.log(
-        `Stream ${streamUrl}: Waiting for audio chunks... Current size: ${audioChunks.reduce((acc, chunk) => acc + chunk.length, 0)} bytes`,
-      );
-      return;
+      return; // Silent wait for more data
     }
 
     const totalSize = audioChunks.reduce((acc, chunk) => acc + chunk.length, 0);
     if (totalSize < minChunkSize) {
-      console.log(
-        `Stream ${streamUrl}: Not enough audio data yet. Current size: ${totalSize} bytes`,
-      );
-      return;
+      return; // Silent wait for minimum chunk size
     }
 
     isProcessing = true;
-    console.log(
-      `Stream ${streamUrl}: Processing ${totalSize} bytes of audio data`,
-    );
 
     const combinedBuffer = Buffer.concat(audioChunks);
     audioChunks = [];
@@ -82,7 +65,7 @@ export function transcribeStream(streamUrl: string) {
       const tempPcmPath = join(process.cwd(), "temp", `${randomUUID()}.pcm`);
       const tempWavPath = join(process.cwd(), "temp", `${randomUUID()}.wav`);
 
-      await writeFile(tempPcmPath, combinedBuffer);
+      await fs.writeFile(tempPcmPath, combinedBuffer);
 
       const ffmpeg = spawn("ffmpeg", [
         "-loglevel",
@@ -103,28 +86,26 @@ export function transcribeStream(streamUrl: string) {
       await new Promise((resolve, reject) => {
         ffmpeg.on("close", (code: number | null) => {
           if (code === 0) resolve(null);
-          else reject(new Error(`FFmpeg exited with code ${code}`));
+          else reject(new Error(`FFmpeg conversion failed with code ${code}`));
         });
         ffmpeg.on("error", reject);
       });
 
-      const transcript = await assembly.transcripts.transcribe({
-        audio: tempWavPath,
-      });
+      const baseName = randomUUID();
+      const permanentWavPath = join(process.cwd(), "temp", baseName + ".wav");
+      const metadataPath = join(process.cwd(), "temp", baseName + ".json");
 
-      if (transcript.text) {
-        console.log(`Stream ${streamUrl} caption: ${transcript.text}`);
+      await fs.rename(tempWavPath, permanentWavPath);
+      const metadata = {
+        streamUrl,
+      };
 
-        try {
-          await sendCaptionToServer(streamUrl, transcript.text);
-        } catch (error) {
-          console.error('Failed to send caption to server:', error);
-        }
-      }
+      await fs.writeFile(metadataPath, JSON.stringify(metadata));
+      console.log(`[YT Transcriber] Queued audio segment for processing`);
 
-      await Promise.all([unlink(tempPcmPath), unlink(tempWavPath)]);
+      await fs.unlink(tempPcmPath);
     } catch (error) {
-      console.error(`Error transcribing audio for stream ${streamUrl}:`, error);
+      console.error(`[YT Transcriber] Error processing audio segment:`, error);
     } finally {
       isProcessing = false;
     }
@@ -135,23 +116,27 @@ export function transcribeStream(streamUrl: string) {
   });
 
   proc.stderr.on("data", (data: Buffer) => {
-    console.log(`Stream ${streamUrl}:`, data.toString());
+    // Only log stderr if it contains important information
+    if (data.toString().includes('error') || data.toString().includes('warning')) {
+      console.warn(`[YT Transcriber] Stream warning:`, data.toString().trim());
+    }
   });
 
   proc.on("error", (error: Error) => {
-    console.error(`Stream ${streamUrl} process error:`, error);
+    console.error(`[YT Transcriber] Stream error:`, error);
   });
 
   proc.on("exit", (code: number | null, signal: NodeJS.Signals | null) => {
     clearInterval(intervalId);
     delete activeProcesses[streamUrl];
-    console.log(
-      `Process exited for stream URL: ${streamUrl} with code ${code} and signal ${signal}`,
-    );
+    if (code !== 0) {
+      console.log(`[YT Transcriber] Stream monitoring ended with code ${code}`);
+    }
   });
 
   proc.on("close", (code: number | null) => {
-    console.log(`Stream ${streamUrl} process closed with code ${code}`);
+    if (code !== 0) {
+      console.log(`[YT Transcriber] Stream connection closed with code ${code}`);
+    }
   });
 };
-

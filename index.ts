@@ -1,18 +1,14 @@
-import { startYoutubeLiveTranscriptions, scheduleGoogleTrendsTracking } from "./orchestrator";
-
+import { startYoutubeLiveTranscriptions, scheduleGoogleTrendsTracking, startAudioProcessingQueue } from "./orchestrator";
 import { config } from "dotenv";
 config();
 
-// Start YouTube live transcriptions
 startYoutubeLiveTranscriptions();
-
-// Start Google Trends tracking
 scheduleGoogleTrendsTracking();
+startAudioProcessingQueue();
 
-// Keep the process alive
 setInterval(
   () => {
-    console.log("consumers is running")
+    console.log("[Consumers] Service heartbeat");
   },
   1000 * 60 * 60,
 );
